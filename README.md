@@ -52,7 +52,7 @@ python service.py
 
 | Command | Usage | Description |
 |---|---|---|
-| `/cd` | `/cd projects` | Change folder |
+| `/cd` | `/cd projects` or directly input a custom directory `/cd D:\Downloads`| Change folder |
 | `/list` | `/list` | List files |
 | `/run` | `/run script.py` | Run Python script |
 | `/delete` | `/delete file.txt` | Delete file |
