@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
 import mss
+import asyncio
 
 # --- 1. CONFIGURATION ---
 load_dotenv()  # Load from .env file
@@ -80,6 +81,49 @@ async def run_script(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await update.message.reply_text(f"❌ Execution failed: {e}")
 
+async def run_output(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_authorized(update): return
+    if not context.args:
+        await update.message.reply_text("Usage: /runout <script.py> [args]")
+        return
+    
+    script_name = context.args[0]
+    cmd = ['python', script_name] + context.args[1:]
+    status_msg = await update.message.reply_text(f"⏳ Running `{script_name}`...")
+    
+    try:
+        # We wait for the thread to finish, or time out after 30s
+        result = await asyncio.wait_for(
+            asyncio.to_thread(
+                subprocess.run, 
+                cmd, 
+                cwd=CURRENT_PATH, 
+                capture_output=True, 
+                text=True,
+                creationflags=subprocess.CREATE_NO_WINDOW
+            ),
+            timeout=30
+        )
+        
+        output = result.stdout.strip()
+        errors = result.stderr.strip()
+        
+        response = ""
+        if output: response += f"✅ **Output:**\n```\n{output[:3500]}\n```"
+        if errors: response += f"\n\n⚠️ **Errors:**\n```\n{errors[:500]}\n```"
+        if not output and not errors: response = "✅ Script finished (no output)."
+
+        await status_msg.edit_text(response, parse_mode="Markdown")
+        
+    # FIX: Use TimeoutError instead of asyncio.TimeoutExpired
+    except TimeoutError:
+        await status_msg.edit_text(
+            f"🕒 `{script_name}` is taking a long time (> 30s).\n"
+            "It is still running in the background, but I've stopped waiting for the output."
+        )
+    except Exception as e:
+        await status_msg.edit_text(f"❌ Execution failed: {e}")
+                		
 async def delete_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_authorized(update): return
     if not context.args: return await update.message.reply_text("Usage: /delete <filename>")
@@ -140,6 +184,7 @@ if __name__ == "__main__":
     app.add_handler(CommandHandler("screenshot", take_screenshot))
     app.add_handler(CommandHandler("download", download_file))
     app.add_handler(CommandHandler("kill", kill_script))
+    app.add_handler(CommandHandler("runout", run_output))
     
     print("Bot is listening for commands...")
     app.run_polling()

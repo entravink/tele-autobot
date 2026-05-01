@@ -20,7 +20,7 @@ Control your PC remotely using a private Telegram bot.
 - Bot token from BotFather
 
 ```bash
-pip install python-telegram-bot python-dotenv pyautogui psutil mss
+pip install python-telegram-bot python-dotenv pyautogui psutil mss asyncio
 ```
 
 ## Setup
