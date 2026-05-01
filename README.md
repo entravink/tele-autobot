@@ -55,6 +55,7 @@ python service.py
 | `/cd` | `/cd projects` or directly input a custom directory `/cd D:\Downloads`| Change folder |
 | `/list` | `/list` | List files |
 | `/run` | `/run script.py` | Run Python script |
+| `/runout` | `/runout script.py` | Run Python script and pass the print output to chat reply|
 | `/delete` | `/delete file.txt` | Delete file |
 | `/screenshot` | `/screenshot` | Take screenshot |
 | `/download` | `/download report.xlsx` | Download file |
