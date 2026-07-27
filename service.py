@@ -71,28 +71,32 @@ async def list_files(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def run_script(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_authorized(update): return
     if not context.args:
-        await update.message.reply_text("Usage: /run <script.py> [args]")
+        await update.message.reply_text("Usage: /run [-3.xx] <script.py> [args]")
         return
     
-    cmd = ['python', context.args[0]] + context.args[1:]
+    # Use 'py' launcher instead of 'python'
+    cmd = ['py'] + context.args
+    cmd_text = " ".join(cmd)
+    
     try:
         subprocess.Popen(cmd, cwd=CURRENT_PATH)
-        await update.message.reply_text(f"🚀 Executing `{context.args[0]}` in `{CURRENT_PATH}`", parse_mode="Markdown")
+        await update.message.reply_text(f"🚀 Executing `{cmd_text}` in `{CURRENT_PATH}`", parse_mode="Markdown")
     except Exception as e:
         await update.message.reply_text(f"❌ Execution failed: {e}")
 
 async def run_output(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_authorized(update): return
     if not context.args:
-        await update.message.reply_text("Usage: /runout <script.py> [args]")
+        await update.message.reply_text("Usage: /runout [-3.xx] <script.py> [args]")
         return
     
-    script_name = context.args[0]
-    cmd = ['python', script_name] + context.args[1:]
-    status_msg = await update.message.reply_text(f"⏳ Running `{script_name}`...")
+    # Use 'py' launcher instead of 'python'
+    cmd = ['py'] + context.args
+    cmd_text = " ".join(cmd)
+    
+    status_msg = await update.message.reply_text(f"⏳ Running `{cmd_text}`...")
     
     try:
-        # We wait for the thread to finish, or time out after 30s
         result = await asyncio.wait_for(
             asyncio.to_thread(
                 subprocess.run, 
@@ -100,7 +104,7 @@ async def run_output(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 cwd=CURRENT_PATH, 
                 capture_output=True, 
                 text=True,
-                creationflags=subprocess.CREATE_NO_WINDOW
+                creationflags=subprocess.CREATE_NO_WINDOW if os.name == 'nt' else 0
             ),
             timeout=30
         )
@@ -115,10 +119,9 @@ async def run_output(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await status_msg.edit_text(response, parse_mode="Markdown")
         
-    # FIX: Use TimeoutError instead of asyncio.TimeoutExpired
     except TimeoutError:
         await status_msg.edit_text(
-            f"🕒 `{script_name}` is taking a long time (> 30s).\n"
+            f"🕒 `{cmd_text}` is taking a long time (> 30s).\n"
             "It is still running in the background, but I've stopped waiting for the output."
         )
     except Exception as e:
