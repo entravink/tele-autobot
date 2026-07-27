@@ -5,7 +5,7 @@ import pyautogui
 import psutil
 import json
 from dotenv import load_dotenv
-from telegram import Update
+from telegram import Update, BotCommand
 from telegram.ext import Application, CommandHandler, ContextTypes
 import mss
 import asyncio
@@ -165,6 +165,42 @@ async def download_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await update.message.reply_text("❌ File not found.")
 
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not is_authorized(update): return
+    
+    help_text = (
+        "🤖 *Bot Command Menu*\n\n"
+        "📂 *Navigation & Files*\n"
+        "• `/cd` — Show current directory & favorites\n"
+        "• `/cd <path/alias>` — Change directory or jump to favorite\n"
+        "• `/list` — List files in current directory\n"
+        "• `/download <filename>` — Download a file\n"
+        "• `/delete <filename>` — Delete a file\n\n"
+        "🚀 *Script Execution*\n"
+        "• `/run [-3.xx] <script.py>` — Run script in background\n"
+        "• `/runout [-3.xx] <script.py>` — Run script and show output/errors\n"
+        "• `/kill <script.py>` — Terminate running script\n\n"
+        "📸 *System*\n"
+        "• `/screenshot` — Take a screenshot of main display\n"
+        "• `/help` — Show this menu"
+    )
+    await update.message.reply_text(help_text, parse_mode="Markdown")
+
+async def post_init(application: Application):
+    # This automatically registers the commands into Telegram's menu button
+    commands = [
+        BotCommand("help", "Show list of available commands"),
+        BotCommand("cd", "Change directory or show current path"),
+        BotCommand("list", "List files in current folder"),
+        BotCommand("run", "Run a script in background"),
+        BotCommand("runout", "Run a script and capture output"),
+        BotCommand("kill", "Kill a running script process"),
+        BotCommand("download", "Download file from server"),
+        BotCommand("delete", "Delete file from server"),
+        BotCommand("screenshot", "Take screenshot of screen"),
+    ]
+    await application.bot.set_my_commands(commands)
+
 async def kill_script(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_authorized(update): return
     if not context.args: return await update.message.reply_text("Usage: /kill <name.py>")
@@ -179,7 +215,10 @@ async def kill_script(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # --- 4. MAIN ENTRY POINT ---
 if __name__ == "__main__":
-    app = Application.builder().token(BOT_TOKEN).build()
+    app = Application.builder().token(BOT_TOKEN).post_init(post_init).build()
+    
+    app.add_handler(CommandHandler("start", help_command))
+    app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("cd", change_directory))
     app.add_handler(CommandHandler("list", list_files))
     app.add_handler(CommandHandler("run", run_script))
